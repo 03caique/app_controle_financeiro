@@ -40,4 +40,15 @@ class UsuarioRepository {
 
     return usuario;
   }
+
+  Future<Usuario?> buscarPorId(int id) async {
+    final db = await _dbHelper.database;
+    final resultado = await db.query(
+      'usuarios',
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+    if (resultado.isEmpty) return null;
+    return Usuario.fromMap(resultado.first);
+  }
 }

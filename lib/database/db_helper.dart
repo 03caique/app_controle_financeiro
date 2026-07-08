@@ -62,5 +62,24 @@ class DBHelper {
         FOREIGN KEY (categoria_id) REFERENCES categorias (id)
       )
     ''');
+
+    await _seedCategorias(db);
+  }
+
+  Future<void> _seedCategorias(Database db) async {
+    final categoriasPadrao = [
+      {'nome': 'Salário', 'tipo': 'receita', 'limite': null},
+      {'nome': 'Outras Receitas', 'tipo': 'receita', 'limite': null},
+      {'nome': 'Alimentação', 'tipo': 'despesa', 'limite': null},
+      {'nome': 'Transporte', 'tipo': 'despesa', 'limite': null},
+      {'nome': 'Moradia', 'tipo': 'despesa', 'limite': null},
+      {'nome': 'Lazer', 'tipo': 'despesa', 'limite': null},
+      {'nome': 'Saúde', 'tipo': 'despesa', 'limite': null},
+      {'nome': 'Outros', 'tipo': 'despesa', 'limite': null},
+    ];
+
+    for (final categoria in categoriasPadrao) {
+      await db.insert('categorias', categoria);
+    }
   }
 }

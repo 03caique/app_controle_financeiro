@@ -83,4 +83,48 @@ class TransacaoRepository {
 
     return totalReceitas - totalDespesas;
   }
+
+  Future<double> totalGastoPorCategoriaNoMes(
+    int usuarioId,
+    int categoriaId,
+    String anoMes, 
+  ) async {
+    final db = await _dbHelper.database;
+    final resultado = await db.rawQuery(
+      '''SELECT SUM(valor) as total FROM transacoes
+         WHERE usuario_id = ? AND categoria_id = ? AND tipo = 'despesa'
+         AND data LIKE ?''',
+      [usuarioId, categoriaId, '$anoMes%'],
+    );
+    return (resultado.first['total'] as double?) ?? 0.0;
+  }
+
+  Future<List<Transacao>> listarComFiltro({
+    required int usuarioId,
+    int? categoriaId,
+    String? dataInicio,
+    String? dataFim,
+  }) async {
+    final db = await _dbHelper.database;
+    final condicoes = <String>['usuario_id = ?'];
+    final args = <Object?>[usuarioId];
+
+    if (categoriaId != null) {
+      condicoes.add('categoria_id = ?');
+      args.add(categoriaId);
+    }
+    if (dataInicio != null && dataFim != null) {
+      condicoes.add('data BETWEEN ? AND ?');
+      args.add(dataInicio);
+      args.add(dataFim);
+    }
+
+    final resultado = await db.query(
+      'transacoes',
+      where: condicoes.join(' AND '),
+      whereArgs: args,
+      orderBy: 'data DESC',
+    );
+    return resultado.map((map) => Transacao.fromMap(map)).toList();
+  }
 }

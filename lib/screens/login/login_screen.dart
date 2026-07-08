@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../repositories/usuario_repository.dart';
 import '../cadastro/cadastro_screen.dart';
 import '../home/home_screen.dart';
+import '../../services/preferencias_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -18,6 +19,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _usuarioRepository = UsuarioRepository();
 
   bool _carregando = false;
+  bool _manterConectado = true;
 
   @override
   void dispose() {
@@ -44,6 +46,10 @@ class _LoginScreenState extends State<LoginScreen> {
         const SnackBar(content: Text('Email ou senha inválidos.')),
       );
       return;
+    }
+
+    if (_manterConectado) {
+      await PreferenciasService().salvarUsuarioLogado(usuario.id!);
     }
 
     Navigator.pushReplacement(
@@ -100,6 +106,14 @@ class _LoginScreenState extends State<LoginScreen> {
                 },
               ),
               const SizedBox(height: 24),
+              CheckboxListTile(
+                value: _manterConectado,
+                onChanged: (valor) =>
+                    setState(() => _manterConectado = valor ?? true),
+                title: const Text('Manter conectado'),
+                controlAffinity: ListTileControlAffinity.leading,
+                contentPadding: EdgeInsets.zero,
+              ),
               ElevatedButton(
                 onPressed: _carregando ? null : _login,
                 child: _carregando
