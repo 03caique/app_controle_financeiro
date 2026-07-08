@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import '../../models/categoria.dart';
 import '../../repositories/categoria_repository.dart';
+import '../../repositories/transacao_repository.dart';
 
 class CategoriasScreen extends StatefulWidget {
-  const CategoriasScreen({super.key});
+  final int usuarioId;
+
+  const CategoriasScreen({super.key, required this.usuarioId});
 
   @override
   State<CategoriasScreen> createState() => _CategoriasScreenState();
@@ -11,7 +14,9 @@ class CategoriasScreen extends StatefulWidget {
 
 class _CategoriasScreenState extends State<CategoriasScreen> {
   final _repository = CategoriaRepository();
+  final _transacaoRepository = TransacaoRepository();
   List<Categoria> _categorias = [];
+  Map<int, double> _gastosPorCategoria = {};
   bool _carregando = true;
 
   @override
@@ -23,9 +28,25 @@ class _CategoriasScreenState extends State<CategoriasScreen> {
   Future<void> _carregar() async {
     setState(() => _carregando = true);
     final lista = await _repository.listarTodas();
+
+    final agora = DateTime.now();
+    final anoMes = '${agora.year}-${agora.month.toString().padLeft(2, '0')}';
+
+    final gastos = <int, double>{};
+    for (final c in lista) {
+      if (c.id != null && c.limite != null && c.limite! > 0) {
+        gastos[c.id!] = await _transacaoRepository.totalGastoPorCategoriaNoMes(
+          widget.usuarioId,
+          c.id!,
+          anoMes,
+        );
+      }
+    }
+
     if (!mounted) return;
     setState(() {
       _categorias = lista;
+      _gastosPorCategoria = gastos;
       _carregando = false;
     });
   }
@@ -139,6 +160,42 @@ class _CategoriasScreenState extends State<CategoriasScreen> {
     _carregar();
   }
 
+  Widget? _buildProgressoLimite(Categoria c) {
+    if (c.limite == null || c.limite! <= 0) return null;
+
+    final limite = c.limite!;
+    final gasto = _gastosPorCategoria[c.id] ?? 0;
+    final proporcao = (gasto / limite).clamp(0.0, 1.0);
+    final estourou = gasto > limite;
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 6),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: proporcao,
+              minHeight: 6,
+              backgroundColor: Colors.grey[300],
+              color: estourou ? Colors.red : Colors.blue,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'R\$ ${gasto.toStringAsFixed(2)} de R\$ ${limite.toStringAsFixed(2)}'
+            '${estourou ? '  •  Estourou!' : ''}',
+            style: TextStyle(
+              fontSize: 12,
+              color: estourou ? Colors.red[800] : Colors.grey[700],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -155,9 +212,7 @@ class _CategoriasScreenState extends State<CategoriasScreen> {
                     color: c.tipo == 'receita' ? Colors.green : Colors.red,
                   ),
                   title: Text(c.nome),
-                  subtitle: c.limite != null
-                      ? Text('Limite: R\$ ${c.limite!.toStringAsFixed(2)}')
-                      : null,
+                  subtitle: _buildProgressoLimite(c),
                   onTap: () => _abrirFormulario(categoria: c),
                   trailing: IconButton(
                     icon: const Icon(Icons.delete_outline),

@@ -32,6 +32,7 @@ class _HomeScreenState extends State<HomeScreen> {
   int? _filtroCategoriaId;
   DateTimeRange? _filtroPeriodo;
   List<Categoria> _todasCategorias = [];
+  double _gastoCategoriaFiltrada = 0;
 
   @override
   void initState() {
@@ -72,6 +73,19 @@ class _HomeScreenState extends State<HomeScreen> {
       for (final c in categorias) c.id!: c.nome,
     };
 
+    double gastoCategoriaFiltrada = 0;
+    if (_filtroCategoriaId != null) {
+      final agora = DateTime.now();
+      final anoMes =
+          '${agora.year}-${agora.month.toString().padLeft(2, '0')}';
+      gastoCategoriaFiltrada = await _transacaoRepository
+          .totalGastoPorCategoriaNoMes(
+        widget.usuario.id!,
+        _filtroCategoriaId!,
+        anoMes,
+      );
+    }
+
     if (!mounted) return;
     setState(() {
       _saldo = saldo;
@@ -79,6 +93,7 @@ class _HomeScreenState extends State<HomeScreen> {
       _totalDespesas = totalDespesas;
       _transacoes = transacoes;
       _nomesCategorias = mapaCategorias;
+      _gastoCategoriaFiltrada = gastoCategoriaFiltrada;
       _carregando = false;
     });
   }
@@ -171,7 +186,9 @@ class _HomeScreenState extends State<HomeScreen> {
             icon: const Icon(Icons.category_outlined),
             onPressed: () => Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => const CategoriasScreen()),
+              MaterialPageRoute(
+                builder: (_) => CategoriasScreen(usuarioId: widget.usuario.id!),
+              ),
             ).then((_) => _carregarDados()),
           ),
           IconButton(
@@ -188,6 +205,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 padding: const EdgeInsets.all(16),
                 children: [
                   _buildBarraFiltro(),
+                  if (_filtroCategoriaId != null) _buildCardLimiteCategoria(),
                   const SizedBox(height: 16),
                   _buildCardSaldo(),
                   const SizedBox(height: 24),
@@ -342,4 +360,64 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       );
     }
+
+    Widget _buildCardLimiteCategoria() {
+    final categoria = _todasCategorias.firstWhere(
+      (c) => c.id == _filtroCategoriaId,
+      orElse: () => Categoria(nome: '', tipo: 'despesa'),
+    );
+
+    if (categoria.limite == null || categoria.limite! <= 0) {
+      return const Padding(
+        padding: EdgeInsets.only(top: 12),
+        child: Text(
+          'Esta categoria não tem limite definido.',
+          style: TextStyle(color: Colors.grey),
+        ),
+      );
+    }
+
+    final limite = categoria.limite!;
+    final gasto = _gastoCategoriaFiltrada;
+    final proporcao = (gasto / limite).clamp(0.0, 1.0);
+    final estourou = gasto > limite;
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 12),
+      child: Card(
+        color: estourou ? Colors.red[50] : Colors.blue[50],
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Limite mensal de ${categoria.nome}',
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: LinearProgressIndicator(
+                  value: proporcao,
+                  minHeight: 10,
+                  backgroundColor: Colors.grey[300],
+                  color: estourou ? Colors.red : Colors.blue,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'R\$ ${gasto.toStringAsFixed(2)} de R\$ ${limite.toStringAsFixed(2)}'
+                '${estourou ? '  •  Limite ultrapassado!' : ''}',
+                style: TextStyle(
+                  color: estourou ? Colors.red[800] : Colors.blue[800],
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
