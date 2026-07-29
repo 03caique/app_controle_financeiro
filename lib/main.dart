@@ -5,6 +5,7 @@ import 'services/notification_service.dart';
 import 'services/preferencias_service.dart';
 import 'repositories/usuario_repository.dart';
 import 'models/usuario.dart';
+import 'theme/app_theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -21,16 +22,12 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Controle Financeiro',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-        useMaterial3: true,
-      ),
+      theme: AppTheme.light,
       home: const TelaInicial(),
     );
   }
 }
 
-/// Decide se o usuário vai direto pra Home (sessão salva) ou pro Login.
 class TelaInicial extends StatelessWidget {
   const TelaInicial({super.key});
 

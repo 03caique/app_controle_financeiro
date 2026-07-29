@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../models/categoria.dart';
 import '../../repositories/categoria_repository.dart';
 import '../../repositories/transacao_repository.dart';
+import '../../theme/app_theme.dart';
 
 class CategoriasScreen extends StatefulWidget {
   final int usuarioId;
@@ -65,52 +66,87 @@ class _CategoriasScreenState extends State<CategoriasScreen> {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setStateDialog) => AlertDialog(
-          title: Text(categoria == null ? 'Nova Categoria' : 'Editar Categoria'),
-          content: Form(
-            key: formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextFormField(
-                  controller: nomeController,
-                  decoration: const InputDecoration(labelText: 'Nome'),
-                  validator: (v) =>
-                      (v == null || v.trim().isEmpty) ? 'Informe o nome' : null,
-                ),
-                const SizedBox(height: 12),
-                DropdownButtonFormField<String>(
-                  initialValue: tipo,
-                  decoration: const InputDecoration(labelText: 'Tipo'),
-                  items: const [
-                    DropdownMenuItem(value: 'despesa', child: Text('Despesa')),
-                    DropdownMenuItem(value: 'receita', child: Text('Receita')),
-                  ],
-                  onChanged: (v) => setStateDialog(() => tipo = v ?? 'despesa'),
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: limiteController,
-                  decoration: const InputDecoration(
-                    labelText: 'Limite mensal (opcional)',
-                    prefixText: 'R\$ ',
+          backgroundColor: AppColors.parchment,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+          title: Text(
+            categoria == null ? 'Nova Categoria' : 'Editar Categoria',
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
+          content: SingleChildScrollView(
+            child: Form(
+              key: formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextFormField(
+                    controller: nomeController,
+                    decoration: const InputDecoration(labelText: 'NOME'),
+                    cursorColor: AppColors.brass,
+                    validator: (v) => (v == null || v.trim().isEmpty)
+                        ? 'Informe o nome'
+                        : null,
                   ),
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                ),
-              ],
+                  const SizedBox(height: 16),
+
+                  DropdownButtonFormField<String>(
+                    initialValue: tipo,
+                    decoration: const InputDecoration(labelText: 'TIPO'),
+                    items: const [
+                      DropdownMenuItem(
+                        value: 'despesa',
+                        child: Text('Despesa'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'receita',
+                        child: Text('Receita'),
+                      ),
+                    ],
+                    onChanged: (v) =>
+                        setStateDialog(() => tipo = v ?? 'despesa'),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  TextFormField(
+                    controller: limiteController,
+                    decoration: const InputDecoration(
+                      labelText: 'LIMITE MENSAL (OPCIONAL)',
+                      prefixText: 'R\$ ',
+                    ),
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
           actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancelar'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                if (formKey.currentState!.validate()) {
-                  Navigator.pop(context, true);
-                }
-              },
-              child: const Text('Salvar'),
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.brick,
+                      foregroundColor: Colors
+                          .white, // Ajuste a cor do texto se preferir outra cor de alto contraste
+                    ),
+                    onPressed: () => Navigator.pop(context, false),
+                    child: const Text("Cancelar"),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () {
+                      if (formKey.currentState!.validate()) {
+                        Navigator.pop(context, true);
+                      }
+                    },
+                    child: const Text("Salvar"),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -141,15 +177,25 @@ class _CategoriasScreenState extends State<CategoriasScreen> {
     final confirmar = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Excluir categoria'),
-        content: Text('Excluir "${categoria.nome}"?'),
+        backgroundColor: AppColors.parchment,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+        title: Text(
+          'Excluir categoria',
+          style: Theme.of(context).textTheme.titleLarge,
+        ),
+        content: Text(
+          'Excluir "${categoria.nome}"?',
+          style: Theme.of(context).textTheme.bodyMedium,
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
+            style: TextButton.styleFrom(foregroundColor: AppColors.mutedInk),
             child: const Text('Cancelar'),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: AppColors.brick),
             child: const Text('Excluir'),
           ),
         ],
@@ -167,9 +213,10 @@ class _CategoriasScreenState extends State<CategoriasScreen> {
     final gasto = _gastosPorCategoria[c.id] ?? 0;
     final proporcao = (gasto / limite).clamp(0.0, 1.0);
     final estourou = gasto > limite;
+    final cor = estourou ? AppColors.brick : AppColors.brass;
 
     return Padding(
-      padding: const EdgeInsets.only(top: 6),
+      padding: const EdgeInsets.only(top: 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -178,18 +225,15 @@ class _CategoriasScreenState extends State<CategoriasScreen> {
             child: LinearProgressIndicator(
               value: proporcao,
               minHeight: 6,
-              backgroundColor: Colors.grey[300],
-              color: estourou ? Colors.red : Colors.blue,
+              backgroundColor: AppColors.mutedInk.withValues(alpha: 0.2),
+              color: cor,
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 6),
           Text(
             'R\$ ${gasto.toStringAsFixed(2)} de R\$ ${limite.toStringAsFixed(2)}'
             '${estourou ? '  •  Estourou!' : ''}',
-            style: TextStyle(
-              fontSize: 12,
-              color: estourou ? Colors.red[800] : Colors.grey[700],
-            ),
+            style: AppTypography.amount(fontSize: 12, color: cor),
           ),
         ],
       ),
@@ -201,28 +245,54 @@ class _CategoriasScreenState extends State<CategoriasScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Categorias')),
       body: _carregando
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(
+              child: CircularProgressIndicator(color: AppColors.brass),
+            )
+          : _categorias.isEmpty
+          ? Center(
+              child: Text(
+                'Nenhuma categoria cadastrada.',
+                style: TextStyle(
+                  color: AppColors.parchment.withValues(alpha: 0.6),
+                ),
+              ),
+            )
           : ListView.builder(
+              padding: const EdgeInsets.all(16),
               itemCount: _categorias.length,
               itemBuilder: (context, index) {
                 final c = _categorias[index];
-                return ListTile(
-                  leading: Icon(
-                    c.tipo == 'receita' ? Icons.arrow_upward : Icons.arrow_downward,
-                    color: c.tipo == 'receita' ? Colors.green : Colors.red,
-                  ),
-                  title: Text(c.nome),
-                  subtitle: _buildProgressoLimite(c),
-                  onTap: () => _abrirFormulario(categoria: c),
-                  trailing: IconButton(
-                    icon: const Icon(Icons.delete_outline),
-                    onPressed: () => _excluir(c),
+                final isReceita = c.tipo == 'receita';
+                final cor = isReceita ? AppColors.emerald : AppColors.brick;
+
+                return Card(
+                  margin: const EdgeInsets.symmetric(vertical: 4),
+                  child: ListTile(
+                    leading: Icon(
+                      isReceita ? Icons.arrow_upward : Icons.arrow_downward,
+                      color: cor,
+                    ),
+                    title: Text(
+                      c.nome,
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    subtitle: _buildProgressoLimite(c),
+                    onTap: () => _abrirFormulario(categoria: c),
+                    trailing: IconButton(
+                      icon: const Icon(
+                        Icons.delete_outline,
+                        color: AppColors.mutedInk,
+                      ),
+                      onPressed: () => _excluir(c),
+                    ),
                   ),
                 );
               },
             ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _abrirFormulario(),
+        backgroundColor: AppColors.brass,
+        foregroundColor: AppColors.inkNavy,
         child: const Icon(Icons.add),
       ),
     );
